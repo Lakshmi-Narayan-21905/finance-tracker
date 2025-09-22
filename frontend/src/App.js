@@ -6,7 +6,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import TransactionsManagement  from './components/Transactionpage';
-import FinancialAdvice from './components/FinanceAdvice';
+import FinancialAdvicePage from './components/FinancialAdvicePage';
 // import Budgets from './components/Budgets';
 import Reports from './components/Reports';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -45,7 +45,7 @@ function App() {
               path="/aiadvice" 
               element={
                 <ProtectedRoute>
-                  <FinancialAdvice />
+                  <FinancialAdvicePage />
                 </ProtectedRoute>
               } 
             />

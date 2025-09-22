@@ -14,125 +14,52 @@ mongoose
 
 async function seedTransactions() {
   try {
-    const userId = "68d0e53bdeac7d239645dc3b"; // 👈 Replace with your actual user _id
+    const userId = "68d0e53bdeac7d239645dc3b"; // Replace with your actual user _id
 
-    const transactions = [
-      {
+    const categories = {
+      income: ["Salary", "Freelance", "Bonus", "Investments", "Gift"],
+      expense: [
+        "Food",
+        "Transport",
+        "Shopping",
+        "Entertainment",
+        "Bills",
+        "Groceries",
+        "Travel",
+        "Health",
+        "Education",
+        "Rent",
+      ],
+    };
+
+    const transactions = [];
+
+    for (let i = 0; i < 50; i++) {
+      const type = Math.random() < 0.4 ? "income" : "expense"; // ~40% income, 60% expense
+      const categoryList = categories[type];
+      const category =
+        categoryList[Math.floor(Math.random() * categoryList.length)];
+      const amount =
+        type === "income"
+          ? Math.floor(Math.random() * 50000) + 5000 // income between 5k-55k
+          : Math.floor(Math.random() * 15000) + 100; // expense between 100-15k
+      const description = `${category} transaction`;
+      const month = Math.floor(Math.random() * 12); // 0-11 for Jan-Dec
+      const day = Math.floor(Math.random() * 28) + 1; // 1-28 to avoid invalid dates
+      const date = new Date(2025, month, day);
+
+      transactions.push({
         user: userId,
-        type: "expense",
-        category: "Food",
-        amount: 250,
-        description: "Lunch with friends",
-        date: new Date("2025-01-10"),
-      },
-      {
-        user: userId,
-        type: "income",
-        category: "Salary",
-        amount: 50000,
-        description: "Monthly salary",
-        date: new Date("2025-01-05"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Transport",
-        amount: 1200,
-        description: "Cab and bus fares",
-        date: new Date("2025-01-15"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Shopping",
-        amount: 3000,
-        description: "Clothes and accessories",
-        date: new Date("2025-01-20"),
-      },
-      {
-        user: userId,
-        type: "income",
-        category: "Freelance",
-        amount: 15000,
-        description: "Freelance project",
-        date: new Date("2025-01-22"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Entertainment",
-        amount: 800,
-        description: "Movie tickets",
-        date: new Date("2025-01-25"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Bills",
-        amount: 4500,
-        description: "Electricity and water bill",
-        date: new Date("2025-01-28"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Groceries",
-        amount: 2200,
-        description: "Monthly groceries",
-        date: new Date("2025-02-02"),
-      },
-      {
-        user: userId,
-        type: "income",
-        category: "Bonus",
-        amount: 10000,
-        description: "Performance bonus",
-        date: new Date("2025-02-05"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Travel",
-        amount: 15000,
-        description: "Weekend trip",
-        date: new Date("2025-02-08"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Health",
-        amount: 2000,
-        description: "Medicines",
-        date: new Date("2025-02-10"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Education",
-        amount: 6000,
-        description: "Course fees",
-        date: new Date("2025-02-15"),
-      },
-      {
-        user: userId,
-        type: "income",
-        category: "Investments",
-        amount: 7000,
-        description: "Stock dividends",
-        date: new Date("2025-02-20"),
-      },
-      {
-        user: userId,
-        type: "expense",
-        category: "Rent",
-        amount: 12000,
-        description: "Monthly rent",
-        date: new Date("2025-02-25"),
-      },
-    ];
+        type,
+        category,
+        amount,
+        description,
+        date,
+      });
+    }
 
     await Transaction.insertMany(transactions);
-    console.log("Sample transactions inserted successfully!");
+    console.log("50 sample transactions inserted successfully!");
   } catch (err) {
     console.error("Error inserting transactions:", err);
   } finally {

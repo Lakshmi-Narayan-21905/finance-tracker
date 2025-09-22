@@ -1,46 +1,67 @@
-import React from 'react';//Navigation.js
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import './Navigation.css';
 
 const Navigation = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const tabs = [
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/transactions', label: 'Transactions' },
+    { path: '/reports', label: 'Reports' },
+    { path: '/aiadvice', label: 'AI Advice' }
+  ];
+
+  const isActive = (path) => location.pathname.startsWith(path);
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg">
-      <Container>
-        <Navbar.Brand onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          Finance Tracker
-        </Navbar.Brand>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
+    <nav className="minimal-nav">
+      <div className="nav-container">
+        {/* Logo */}
+        <div className="logo" onClick={() => navigate('/dashboard')}>
+          FinanceTrack
+        </div>
+
+        {/* Navigation */}
+        {currentUser && (
+          <div className="tabs">
+            {tabs.map(tab => (
+              <button
+                key={tab.path}
+                onClick={() => navigate(tab.path)}
+                className={`tab ${isActive(tab.path) ? 'active' : ''}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* User Actions */}
+        <div className="user-actions">
           {currentUser ? (
             <>
-              <Nav className="me-auto">
-                <Nav.Link onClick={() => navigate('/dashboard')}>Dashboard</Nav.Link>
-                <Nav.Link onClick={() => navigate('/transactions')}>Transactions</Nav.Link>
-                <Nav.Link onClick={() => navigate('/aiadvice')}>AI Advice</Nav.Link>
-                <Nav.Link onClick={() => navigate('/reports')}>Reports</Nav.Link>
-              </Nav>
-              <Nav>
-                <Navbar.Text className="me-3">
-                  Welcome, {currentUser.username}
-                </Navbar.Text>
-                <Button variant="outline-light" onClick={logout}>
-                  Logout
-                </Button>
-              </Nav>
+              <span className="user">Hi, {currentUser.username}</span>
+              <button onClick={() => logout()} className="logout">
+                Logout
+              </button>
             </>
           ) : (
-            <Nav className="ms-auto">
-              <Nav.Link onClick={() => navigate('/login')}>Login</Nav.Link>
-              <Nav.Link onClick={() => navigate('/register')}>Register</Nav.Link>
-            </Nav>
+            <>
+              <button onClick={() => navigate('/login')} className="auth">
+                Login
+              </button>
+              <button onClick={() => navigate('/register')} className="auth primary">
+                Sign Up
+              </button>
+            </>
           )}
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+        </div>
+      </div>
+    </nav>
   );
 };
 

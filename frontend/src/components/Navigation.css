@@ -1,0 +1,95 @@
+.minimal-nav {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 1rem 0;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-weight: 600;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #2d3748;
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+}
+
+.tab {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  color: #718096;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: #f7fafc;
+  color: #4a5568;
+}
+
+.tab.active {
+  background: #4299e1;
+  color: white;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user {
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.logout, .auth {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth.primary {
+  background: #4299e1;
+  color: white;
+  border-color: #4299e1;
+}
+
+.logout:hover, .auth:hover {
+  background: #f7fafc;
+}
+
+.auth.primary:hover {
+  background: #3182ce;
+}
+
+@media (max-width: 768px) {
+  .nav-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .tabs {
+    order: 2;
+  }
+  
+  .user-actions {
+    order: 3;
+  }
+}

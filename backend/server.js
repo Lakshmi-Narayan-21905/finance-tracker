@@ -6,9 +6,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 const budgetRoutes = require('./routes/budgets');
-const categoryRoutes = require('./routes/categories'); // 1. Import the new routes
-const aiAdviceRoutes = require("./routes/aiAdvice");
-
+const categoryRoutes = require('./routes/categories');
+const adviceRoutes = require('./routes/advice'); // 1. Import the new advice routes
 
 const app = express();
 
@@ -20,13 +19,14 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/budgets', budgetRoutes);
-app.use('/api/categories', categoryRoutes); // 2. Use the new routes
+app.use('/api/categories', categoryRoutes);
+app.use('/api/advice', adviceRoutes); // 2. Use the new advice routes
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running!' });
 });
-app.use("/api/advice", aiAdviceRoutes);
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,

@@ -15,7 +15,8 @@ import {
   ButtonGroup,
   Toast,
   ToastContainer,
-  Spinner
+  Spinner,
+  Dropdown
 } from 'react-bootstrap';
 import { 
   Search, 
@@ -29,12 +30,13 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
-  Bell // Added Bell icon
+  Bell,
+  Edit,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
 
-// Mock API utility for demonstration. Replace with your actual API calls.
 import api from '../utils/api';
-
 
 const Dashboard = () => {
   const [summary, setSummary] = useState({
@@ -48,6 +50,7 @@ const Dashboard = () => {
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showDeleteBudgetModal, setShowDeleteBudgetModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -55,6 +58,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(null);
+  const [budgetToDelete, setBudgetToDelete] = useState(null);
 
   const [filters, setFilters] = useState({
     type: 'all',
@@ -72,11 +77,11 @@ const Dashboard = () => {
     date: new Date().toISOString().split('T')[0]
   });
   
-const [budgetForm, setBudgetForm] = useState({
-  category: '',
-  amount: '',
-  period: 'monthly' // Change from 'type' to 'period'
-});
+  const [budgetForm, setBudgetForm] = useState({
+    category: '',
+    amount: '',
+    period: 'monthly'
+  });
 
   const categories = ['Salary', 'Food', 'Transport', 'Entertainment', 'Utilities', 'Healthcare', 'Shopping', 'Other'];
 
@@ -85,25 +90,25 @@ const [budgetForm, setBudgetForm] = useState({
     fetchUserData();
   }, []);
 
-const fetchUserData = async () => {
-  try {
-    setLoading(true);
-    const [transactionsRes, summaryRes, budgetsRes] = await Promise.all([
-      api.get('/transactions'),
-      api.get('/transactions/summary'),
-      api.get('/budgets')
-    ]);
-    
-    setTransactions(transactionsRes.data.transactions || []);
-    setSummary(summaryRes.data);
-    setBudgets(budgetsRes.data || []);
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    showToastMessage('Error loading data', 'danger');
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const [transactionsRes, summaryRes, budgetsRes] = await Promise.all([
+        api.get('/transactions'),
+        api.get('/transactions/summary'),
+        api.get('/budgets')
+      ]);
+      
+      setTransactions(transactionsRes.data.transactions || []);
+      setSummary(summaryRes.data);
+      setBudgets(budgetsRes.data || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      showToastMessage('Error loading data', 'danger');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const refreshData = async () => {
     setRefreshing(true);
@@ -191,58 +196,100 @@ const fetchUserData = async () => {
       setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-const handleTransactionSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  try {
-    const response = await api.post('/transactions', transactionForm);
-    const newTransaction = response.data;
-    
-    setTransactions(prev => [newTransaction, ...prev]);
-    
-    // Refresh summary data from API
-    const summaryRes = await api.get('/transactions/summary');
-    setSummary(summaryRes.data);
-    
-    showToastMessage('Transaction added successfully!');
-    setShowTransactionModal(false);
-    setTransactionForm({
-      type: 'expense', category: '', amount: '', description: '',
-      date: new Date().toISOString().split('T')[0]
-    });
-  } catch (error) {
-    console.error('Error adding transaction:', error);
-    showToastMessage('Error adding transaction', 'danger');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  const handleTransactionSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await api.post('/transactions', transactionForm);
+      const newTransaction = response.data;
+      
+      setTransactions(prev => [newTransaction, ...prev]);
+      
+      // Refresh summary data from API
+      const summaryRes = await api.get('/transactions/summary');
+      setSummary(summaryRes.data);
+      
+      showToastMessage('Transaction added successfully!');
+      setShowTransactionModal(false);
+      setTransactionForm({
+        type: 'expense', category: '', amount: '', description: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      showToastMessage('Error adding transaction', 'danger');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-const handleBudgetSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  try {
-    const response = await api.post('/budgets', budgetForm);
-    const newBudget = response.data;
-    
-    setBudgets(prev => {
-      const existing = prev.find(b => b.category === budgetForm.category);
-      if (existing) {
-        return prev.map(b => b.category === budgetForm.category ? newBudget : b);
+  const handleBudgetSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      let response;
+      
+      if (editingBudget) {
+        // Update existing budget
+        response = await api.put(`/budgets/${editingBudget._id}`, budgetForm);
+        showToastMessage('Budget updated successfully!');
+      } else {
+        // Create new budget
+        response = await api.post('/budgets', budgetForm);
+        showToastMessage('Budget created successfully!');
       }
-      return [...prev, newBudget];
+      
+      const updatedBudget = response.data;
+      
+      setBudgets(prev => {
+        if (editingBudget) {
+          return prev.map(b => b._id === editingBudget._id ? updatedBudget : b);
+        } else {
+          return [...prev, updatedBudget];
+        }
+      });
+      
+      setShowBudgetModal(false);
+      setEditingBudget(null);
+      setBudgetForm({ category: '', amount: '', period: 'monthly' });
+    } catch (error) {
+      console.error('Error saving budget:', error);
+      showToastMessage(`Error ${editingBudget ? 'updating' : 'creating'} budget`, 'danger');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditBudget = (budget) => {
+    setEditingBudget(budget);
+    setBudgetForm({
+      category: budget.category,
+      amount: budget.amount,
+      period: budget.period || 'monthly'
     });
+    setShowBudgetModal(true);
+  };
+
+  const handleDeleteBudget = (budget) => {
+    setBudgetToDelete(budget);
+    setShowDeleteBudgetModal(true);
+  };
+
+  const confirmDeleteBudget = async () => {
+    if (!budgetToDelete) return;
     
-    showToastMessage('Budget updated successfully!');
-    setShowBudgetModal(false);
-    setBudgetForm({ category: '', amount: '', type: 'category' });
-  } catch (error) {
-    console.error('Error setting budget:', error);
-    showToastMessage('Error setting budget', 'danger');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    try {
+      await api.delete(`/budgets/${budgetToDelete._id}`);
+      
+      setBudgets(prev => prev.filter(b => b._id !== budgetToDelete._id));
+      showToastMessage('Budget deleted successfully!');
+      setShowDeleteBudgetModal(false);
+      setBudgetToDelete(null);
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+      showToastMessage('Error deleting budget', 'danger');
+    }
+  };
 
   const showToastMessage = (message, variant = 'success') => {
     setToastMessage(message);
@@ -250,6 +297,13 @@ const handleBudgetSubmit = async (e) => {
     setShowToast(true);
   };
   
+  // Reset form when modal closes
+  const handleBudgetModalClose = () => {
+    setShowBudgetModal(false);
+    setEditingBudget(null);
+    setBudgetForm({ category: '', amount: '', period: 'monthly' });
+  };
+
   // --- Helper Functions for Budget calculations ---
   const calculateBudgetProgress = (budget) => {
     const now = new Date();
@@ -262,7 +316,7 @@ const handleBudgetSubmit = async (e) => {
       )
       .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-    const limit = parseFloat(budget.amount );
+    const limit = parseFloat(budget.amount);
     const percentage = limit > 0 ? (spent / limit) * 100 : 0;
     const remaining = limit - spent;
     const isOverspent = percentage > 100;
@@ -305,7 +359,7 @@ const handleBudgetSubmit = async (e) => {
     };
   };
 
-  // Derived state for budget health summary. `useMemo` prevents recalculation on every render.
+  // Derived state for budget health summary
   const budgetHealth = useMemo(() => {
     const stats = { onTrack: 0, nearLimit: 0, overspent: 0 };
     budgets.forEach(budget => {
@@ -320,7 +374,6 @@ const handleBudgetSubmit = async (e) => {
     });
     return stats;
   }, [budgets, transactions]);
-
 
   if (loading) {
     return (
@@ -365,13 +418,13 @@ const handleBudgetSubmit = async (e) => {
               >
                 <Target size={18} /> Set Budget
               </Button>
-              <Button 
+              {/* <Button 
                 variant="primary" 
                 onClick={() => setShowTransactionModal(true)}
                 className="d-flex align-items-center gap-2"
               >
                 <Plus size={18} /> Add Transaction
-              </Button>
+              </Button> */}
             </ButtonGroup>
           </div>
         </Col>
@@ -395,16 +448,16 @@ const handleBudgetSubmit = async (e) => {
                 {` ${budgetHealth.onTrack} on track.`}
               </div>
               <div className="ms-auto">
-                   <Button 
-                      variant="outline-secondary" 
-                      size="sm"
-                      onClick={refreshData}
-                      disabled={refreshing}
-                      className="d-flex align-items-center gap-2"
-                  >
-                      <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-                      {refreshing ? 'Refreshing...' : 'Refresh Data'}
-                  </Button>
+                 <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={refreshData}
+                    disabled={refreshing}
+                    className="d-flex align-items-center gap-2"
+                >
+                    <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                    {refreshing ? 'Refreshing...' : 'Refresh Data'}
+                </Button>
               </div>
             </Alert>
           </Col>
@@ -421,7 +474,7 @@ const handleBudgetSubmit = async (e) => {
                 </div>
                 <div>
                     <h6 className="text-muted mb-1">Total Income</h6>
-                    <h4 className="mb-0 text-success fw-bold">₹{summary.income.toFixed(2)}</h4>
+                    <h4 className="mb-0 text-success fw-bold">${summary.income.toFixed(2)}</h4>
                 </div>
                 </Card.Body>
             </Card>
@@ -434,7 +487,7 @@ const handleBudgetSubmit = async (e) => {
                 </div>
                 <div>
                     <h6 className="text-muted mb-1">Total Expenses</h6>
-                    <h4 className="mb-0 text-danger fw-bold">₹{summary.expenses.toFixed(2)}</h4>
+                    <h4 className="mb-0 text-danger fw-bold">${summary.expenses.toFixed(2)}</h4>
                 </div>
                 </Card.Body>
             </Card>
@@ -448,7 +501,7 @@ const handleBudgetSubmit = async (e) => {
                 <div>
                     <h6 className="text-muted mb-1">Net Balance</h6>
                     <h4 className={`mb-0 fw-bold ${summary.balance >= 0 ? 'text-success' : 'text-danger'}`}>
-                        ₹{summary.balance.toFixed(2)}
+                        ${summary.balance.toFixed(2)}
                     </h4>
                 </div>
                 </Card.Body>
@@ -480,12 +533,32 @@ const handleBudgetSubmit = async (e) => {
                     const status = getBudgetStatus(progress);
                     
                     return (
-                      <Col md={6} lg={4} key={index} className="mb-3">
+                      <Col md={6} lg={4} key={budget._id} className="mb-3">
                         <div className={`p-3 border rounded-3 h-100 ${progress.isOverspent ? 'border-danger bg-danger bg-opacity-10' : progress.isNearLimit ? 'border-warning bg-warning bg-opacity-10' : 'border-light'}`}>
                           <div className="d-flex justify-content-between align-items-center mb-2">
                             <h6 className="mb-0">{budget.category}</h6>
-                            <div className={`d-flex align-items-center gap-1 small ${status.className}`}>
-                              {status.icon} {status.text}
+                            <div className="d-flex align-items-center gap-2">
+                              <div className={`d-flex align-items-center gap-1 small ${status.className}`}>
+                                {status.icon} {status.text}
+                              </div>
+                              <Dropdown>
+                                <Dropdown.Toggle variant="light" size="sm" className="border-0 p-1">
+                                  <MoreVertical size={14} />
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                  <Dropdown.Item onClick={() => handleEditBudget(budget)}>
+                                    <Edit size={14} className="me-2" />
+                                    Edit Budget
+                                  </Dropdown.Item>
+                                  <Dropdown.Item 
+                                    onClick={() => handleDeleteBudget(budget)}
+                                    className="text-danger"
+                                  >
+                                    <Trash2 size={14} className="me-2" />
+                                    Delete Budget
+                                  </Dropdown.Item>
+                                </Dropdown.Menu>
+                              </Dropdown>
                             </div>
                           </div>
                           
@@ -506,18 +579,18 @@ const handleBudgetSubmit = async (e) => {
                           </ProgressBar>
 
                           <div className="d-flex justify-content-between small text-muted mb-2">
-                               <span>₹{progress.spent.toFixed(2)} of ₹{progress.limit.toFixed(2)}</span>
-                               <span>{Math.round(progress.percentage)}%</span>
+                             <span>${progress.spent.toFixed(2)} of ${progress.limit.toFixed(2)}</span>
+                             <span>{Math.round(progress.percentage)}%</span>
                           </div>
                           
-                            <div className="d-flex justify-content-between align-items-center small">
+                           <div className="d-flex justify-content-between align-items-center small">
                                 <span className={progress.remaining < 0 ? "text-danger fw-bold" : "text-success"}>
                                     {progress.remaining >= 0 ? 
-                                        `₹${progress.remaining.toFixed(2)} left` : 
-                                        `₹${Math.abs(progress.remaining).toFixed(2)} over`
+                                        `$${progress.remaining.toFixed(2)} left` : 
+                                        `$${Math.abs(progress.remaining).toFixed(2)} over`
                                     }
                                 </span>
-                            </div>
+                           </div>
                         </div>
                       </Col>
                     );
@@ -528,6 +601,7 @@ const handleBudgetSubmit = async (e) => {
           </Col>
         </Row>
       )}
+
 
       {/* Filters and Search */}
       <Row className="mb-3">
@@ -660,7 +734,7 @@ const handleBudgetSubmit = async (e) => {
                           </td>
                           <td className="py-3 text-end pe-3">
                             <span className={`fw-bold ${transaction.type === 'income' ? 'text-success' : 'text-danger'}`}>
-                              {transaction.type === 'income' ? '+' : '-'}₹{parseFloat(transaction.amount).toFixed(2)}
+                              {transaction.type === 'income' ? '+' : '-'}${parseFloat(transaction.amount).toFixed(2)}
                             </span>
                           </td>
                         </tr>
@@ -674,7 +748,7 @@ const handleBudgetSubmit = async (e) => {
         </Col>
       </Row>
 
-      {/* Transaction Modal */}
+       {/* Transaction Modal */}
       <Modal show={showTransactionModal} onHide={() => setShowTransactionModal(false)} centered>
         <Modal.Header closeButton className="border-0">
           <Modal.Title>Add New Transaction</Modal.Title>
@@ -711,7 +785,7 @@ const handleBudgetSubmit = async (e) => {
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold">Amount</Form.Label>
                   <InputGroup>
-                    <InputGroup.Text>₹</InputGroup.Text>
+                    <InputGroup.Text>$</InputGroup.Text>
                     <Form.Control
                       type="number"
                       step="0.01"
@@ -757,51 +831,88 @@ const handleBudgetSubmit = async (e) => {
         </Form>
       </Modal>
 
-      {/* Budget Modal */}
-      <Modal show={showBudgetModal} onHide={() => setShowBudgetModal(false)} centered>
+       <Modal show={showBudgetModal} onHide={handleBudgetModalClose} centered>
         <Modal.Header closeButton className="border-0">
-          <Modal.Title>Set Budget Limit</Modal.Title>
+          <Modal.Title>
+            {editingBudget ? 'Edit Budget' : 'Set Budget Limit'}
+          </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleBudgetSubmit}>
           <Modal.Body className="px-4">
-<Form.Group className="mb-3">
-  <Form.Label className="fw-semibold">Category</Form.Label>
-  <Form.Select 
-    value={budgetForm.category} 
-    onChange={(e) => handleChange('budget', 'category', e.target.value)}
-    required
-  >
-    <option value="">Select Category to Budget</option>
-    {categories.filter(cat => !['Salary'].includes(cat)).map(cat => (
-      <option key={cat} value={cat}>{cat}</option>
-    ))}
-  </Form.Select>
-</Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Category</Form.Label>
+              <Form.Select 
+                value={budgetForm.category} 
+                onChange={(e) => handleChange('budget', 'category', e.target.value)}
+                required
+                disabled={!!editingBudget} // Disable category editing for existing budgets
+              >
+                <option value="">Select Category to Budget</option>
+                {categories.filter(cat => !['Salary'].includes(cat)).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </Form.Select>
+              {editingBudget && (
+                <Form.Text className="text-muted">
+                  Category cannot be changed for existing budgets.
+                </Form.Text>
+              )}
+            </Form.Group>
 
-<Form.Group className="mb-3">
-  <Form.Label className="fw-semibold">Monthly Limit</Form.Label>
-  <InputGroup>
-    <InputGroup.Text>₹</InputGroup.Text>
-    <Form.Control
-      type="number"
-      step="0.01"
-      value={budgetForm.amount}
-      onChange={(e) => handleChange('budget', 'amount', e.target.value)}
-      placeholder="e.g., 500.00"
-      required
-    />
-  </InputGroup>
-</Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Monthly Limit</Form.Label>
+              <InputGroup>
+                <InputGroup.Text>$</InputGroup.Text>
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  value={budgetForm.amount}
+                  onChange={(e) => handleChange('budget', 'amount', e.target.value)}
+                  placeholder="e.g., 500.00"
+                  required
+                />
+              </InputGroup>
+            </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4">
-            <Button variant="outline-secondary" onClick={() => setShowBudgetModal(false)}>
+            <Button variant="outline-secondary" onClick={handleBudgetModalClose}>
               Cancel
             </Button>
             <Button variant="primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> Setting...</> : 'Set Budget'}
+              {isSubmitting ? (
+                <>
+                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                  {editingBudget ? ' Updating...' : ' Setting...'}
+                </>
+              ) : (
+                editingBudget ? 'Update Budget' : 'Set Budget'
+              )}
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Delete Budget Confirmation Modal */}
+      <Modal show={showDeleteBudgetModal} onHide={() => setShowDeleteBudgetModal(false)} centered>
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title>Delete Budget</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="px-4">
+          <Alert variant="warning" className="mb-0">
+            <AlertTriangle size={20} className="me-2" />
+            Are you sure you want to delete the budget for <strong>{budgetToDelete?.category}</strong>?
+            This action cannot be undone.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer className="border-0 px-4">
+          <Button variant="outline-secondary" onClick={() => setShowDeleteBudgetModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDeleteBudget}>
+            <Trash2 size={16} className="me-2" />
+            Delete Budget
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );

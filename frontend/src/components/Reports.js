@@ -82,7 +82,7 @@ const Reports = () => {
           type: 'expense', 
           category: 'Food', 
           amount: 400, 
-          date: new Date(today.setDate(today.getDate() - 5)).toISOString().split('T')[0], 
+          date: new Date(today.setDate(today.getDate() - 1)).toISOString().split('T')[0], 
           description: 'Groceries' 
         },
         { 
@@ -98,7 +98,7 @@ const Reports = () => {
           type: 'expense', 
           category: 'Transport', 
           amount: 80, 
-          date: new Date(today.setDate(today.getDate() - 3)).toISOString().split('T')[0], 
+          date: new Date(today.setDate(today.getDate() - 2)).toISOString().split('T')[0], 
           description: 'Gas' 
         },
         { 
@@ -106,7 +106,7 @@ const Reports = () => {
           type: 'expense', 
           category: 'Entertainment', 
           amount: 120, 
-          date: new Date(today.setDate(today.getDate() - 1)).toISOString().split('T')[0], 
+          date: new Date(today.setDate(today.getDate() - 3)).toISOString().split('T')[0], 
           description: 'Movies' 
         },
         { 
@@ -114,7 +114,7 @@ const Reports = () => {
           type: 'expense', 
           category: 'Utilities', 
           amount: 200, 
-          date: new Date(today.setDate(today.getDate() - 10)).toISOString().split('T')[0], 
+          date: new Date(today.setDate(today.getDate() - 4)).toISOString().split('T')[0], 
           description: 'Electricity' 
         },
         { 
@@ -122,13 +122,29 @@ const Reports = () => {
           type: 'income', 
           category: 'Freelance', 
           amount: 300, 
-          date: new Date(today.setDate(today.getDate() - 2)).toISOString().split('T')[0], 
+          date: new Date(today.setDate(today.getDate() - 5)).toISOString().split('T')[0], 
           description: 'Project work' 
+        },
+        { 
+          _id: '7', 
+          type: 'expense', 
+          category: 'Shopping', 
+          amount: 150, 
+          date: new Date(today.setDate(today.getDate() - 6)).toISOString().split('T')[0], 
+          description: 'Clothes' 
+        },
+        { 
+          _id: '8', 
+          type: 'expense', 
+          category: 'Food', 
+          amount: 60, 
+          date: new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0], 
+          description: 'Restaurant' 
         }
       ];
       
       setTransactions(sampleTransactions);
-      setSummary({ income: 5300, expenses: 800, balance: 4500 });
+      setSummary({ income: 5300, expenses: 1010, balance: 4290 });
     } finally {
       setLoading(false);
     }
@@ -166,12 +182,12 @@ const Reports = () => {
     return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
   };
 
-  // Process data for daily spending trends
+  // Process data for daily spending trends - LAST 7 DAYS ONLY
   const getDailyTrends = () => {
     const dailyData = {};
     const today = new Date();
-    const last30Days = new Date(today);
-    last30Days.setDate(last30Days.getDate() - 30);
+    const last7Days = new Date(today);
+    last7Days.setDate(last7Days.getDate() - 7);
     
     transactions.forEach(transaction => {
       let transactionDate;
@@ -183,11 +199,12 @@ const Reports = () => {
         transactionDate = new Date(transaction.date);
       }
       
-      if (transactionDate >= last30Days && transactionDate <= today) {
+      // Filter for last 7 days only
+      if (transactionDate >= last7Days && transactionDate <= today) {
         const dateKey = transactionDate.toISOString().split('T')[0];
         
         if (!dailyData[dateKey]) {
-          dailyData[dateKey] = { date: dateKey, income: 0, expenses: 0 };
+          dailyData[dateKey] = { date: dateKey, income: 0, expenses: 0, net: 0 };
         }
         
         const amount = parseFloat(transaction.amount?.$numberInt || transaction.amount);
@@ -197,18 +214,33 @@ const Reports = () => {
         } else {
           dailyData[dateKey].expenses += amount;
         }
+        
+        dailyData[dateKey].net = dailyData[dateKey].income - dailyData[dateKey].expenses;
       }
     });
     
+    // Fill in missing days with zero values for the last 7 days
     const result = [];
-    const currentDate = new Date(last30Days);
+    const currentDate = new Date(last7Days);
     
     while (currentDate <= today) {
       const dateKey = currentDate.toISOString().split('T')[0];
       result.push({
         date: dateKey,
         income: dailyData[dateKey]?.income || 0,
-        expenses: dailyData[dateKey]?.expenses || 0
+        expenses: dailyData[dateKey]?.expenses || 0,
+        net: dailyData[dateKey]?.net || 0,
+        // Add formatted date for better display
+        formattedDate: currentDate.toLocaleDateString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        // Short format for bar chart labels
+        shortDate: currentDate.toLocaleDateString('en-US', { 
+          weekday: 'narrow', 
+          day: 'numeric' 
+        })
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -278,7 +310,8 @@ const Reports = () => {
         date: new Date(prevDate),
         isCurrentMonth: false,
         income: 0,
-        expenses: 0
+        expenses: 0,
+        transactions: []
       });
     }
     
@@ -311,7 +344,7 @@ const Reports = () => {
         income,
         expenses,
         net: income - expenses,
-        transactions: dayTransactions
+        transactions: dayTransactions || []
       });
       
       currentDate.setDate(currentDate.getDate() + 1);
@@ -322,6 +355,7 @@ const Reports = () => {
 
   // Get transactions for a specific date
   const getDateTransactions = (date) => {
+    if (!date) return [];
     const dateKey = date.toISOString().split('T')[0];
     return transactions.filter(transaction => {
       let transactionDate;
@@ -336,11 +370,12 @@ const Reports = () => {
     });
   };
 
-  const monthlyTrends = getMonthlyTrends();
-  const expensePieData = getExpensePieData();
-  const incomePieData = getIncomePieData();
-  const dailyTrends = getDailyTrends();
-  const calendarData = getCalendarData();
+  // Safe data processing with defaults
+  const monthlyTrends = getMonthlyTrends() || [];
+  const expensePieData = getExpensePieData() || [];
+  const incomePieData = getIncomePieData() || [];
+  const dailyTrends = getDailyTrends() || [];
+  const calendarData = getCalendarData() || [];
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -363,6 +398,28 @@ const Reports = () => {
               {entry.dataKey}: ${entry.value?.toFixed(2)}
             </p>
           ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const DailyTrendsTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]?.payload;
+      return (
+        <div className="bg-white p-3 border rounded-3 shadow-sm">
+          <p className="fw-bold mb-1">{data?.formattedDate || label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="mb-0" style={{ color: entry.color }}>
+              {entry.name}: ${entry.value?.toFixed(2)}
+            </p>
+          ))}
+          {payload[0]?.payload && (
+            <p className="mb-0 fw-bold mt-1">
+              Net: ${payload[0].payload.net?.toFixed(2)}
+            </p>
+          )}
         </div>
       );
     }
@@ -651,31 +708,37 @@ const Reports = () => {
                   ))}
                 </div>
                 <div className="calendar-body">
-                  {calendarData.map((day, index) => (
-                    <div
-                      key={index}
-                      className={`calendar-day ${day.isCurrentMonth ? 'current-month' : 'other-month'} ${
-                        day.transactions.length > 0 ? 'has-transactions' : ''
-                      }`}
-                      onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
-                    >
-                      <div className="day-number">{day.date.getDate()}</div>
-                      {day.isCurrentMonth && (
-                        <div className="day-financials">
-                          {day.income > 0 && (
-                            <div className="income-indicator text-success">
-                              <Plus size={12} /> ${day.income}
-                            </div>
-                          )}
-                          {day.expenses > 0 && (
-                            <div className="expense-indicator text-danger">
-                              <Minus size={12} /> ${day.expenses}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                  {calendarData && calendarData.length > 0 ? (
+                    calendarData.map((day, index) => (
+                      <div
+                        key={index}
+                        className={`calendar-day ${day.isCurrentMonth ? 'current-month' : 'other-month'} ${
+                          day.transactions && day.transactions.length > 0 ? 'has-transactions' : ''
+                        }`}
+                        onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+                      >
+                        <div className="day-number">{day.date.getDate()}</div>
+                        {day.isCurrentMonth && (
+                          <div className="day-financials">
+                            {day.income > 0 && (
+                              <div className="income-indicator text-success">
+                                <Plus size={12} /> ${day.income}
+                              </div>
+                            )}
+                            {day.expenses > 0 && (
+                              <div className="expense-indicator text-danger">
+                                <Minus size={12} /> ${day.expenses}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="w-100 text-center py-5 text-muted">
+                      No calendar data available
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </Card.Body>
@@ -683,52 +746,44 @@ const Reports = () => {
         </Col>
       </Row>
 
-      {/* Daily Trends */}
+      {/* Daily Trends - BAR CHART (Last 7 Days) */}
       <Row className="mb-4">
         <Col>
           <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white border-0 py-3">
               <h5 className="mb-0 d-flex align-items-center gap-2">
-                <Calendar size={20} /> Daily Spending Trends (Last 30 Days)
+                <BarChart3 size={20} /> Daily Spending Trends (Last 7 Days)
               </h5>
             </Card.Header>
             <Card.Body>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={dailyTrends}>
+                <BarChart data={dailyTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
-                    dataKey="date" 
+                    dataKey="shortDate" 
                     stroke="#6B7280"
                     fontSize={12}
-                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
                   />
                   <YAxis 
                     stroke="#6B7280"
                     fontSize={12}
                     tickFormatter={(value) => `$${value}`}
                   />
-                  <Tooltip 
-                    content={<CustomTooltip />}
-                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                  />
+                  <Tooltip content={<DailyTrendsTooltip />} />
                   <Legend />
-                  <Line 
-                    type="monotone" 
+                  <Bar 
                     dataKey="income" 
-                    stroke="#10B981" 
-                    strokeWidth={2}
-                    name="Daily Income"
-                    dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                    fill="#10B981" 
+                    name="Income"
+                    radius={[4, 4, 0, 0]}
                   />
-                  <Line 
-                    type="monotone" 
+                  <Bar 
                     dataKey="expenses" 
-                    stroke="#EF4444" 
-                    strokeWidth={2}
-                    name="Daily Expenses"
-                    dot={{ fill: '#EF4444', strokeWidth: 2, r: 4 }}
+                    fill="#EF4444" 
+                    name="Expenses"
+                    radius={[4, 4, 0, 0]}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </Card.Body>
           </Card>
