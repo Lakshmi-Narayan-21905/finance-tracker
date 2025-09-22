@@ -1,0 +1,864 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  ButtonGroup,
+  Button,
+  Form,
+  Alert,
+  Badge,
+  Modal
+} from 'react-bootstrap';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Calendar,
+  DollarSign,
+  Target,
+  Activity,
+  Plus,
+  Minus
+} from 'lucide-react';
+
+const Reports = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [timeRange, setTimeRange] = useState('6months');
+  const [selectedView, setSelectedView] = useState('overview');
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showDateDetails, setShowDateDetails] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Color palette for charts
+  const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#F97316', '#84CC16'];
+  
+  useEffect(() => {
+    fetchData();
+  }, [timeRange]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [transactionsRes, summaryRes] = await Promise.all([
+        axios.get(`/api/transactions?limit=1000&timeRange=${timeRange}`),
+        axios.get('/api/transactions/summary')
+      ]);
+      
+      setTransactions(transactionsRes.data.transactions || []);
+      setSummary(summaryRes.data || {});
+      setError('');
+    } catch (error) {
+      setError('Failed to load analytics data');
+      console.error('Error fetching analytics data:', error);
+      
+      // Sample data for demonstration with realistic dates
+      const today = new Date();
+      const sampleTransactions = [
+        { 
+          _id: '1', 
+          type: 'expense', 
+          category: 'Food', 
+          amount: 400, 
+          date: new Date(today.setDate(today.getDate() - 5)).toISOString().split('T')[0], 
+          description: 'Groceries' 
+        },
+        { 
+          _id: '2', 
+          type: 'income', 
+          category: 'Salary', 
+          amount: 5000, 
+          date: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0], 
+          description: 'Monthly salary' 
+        },
+        { 
+          _id: '3', 
+          type: 'expense', 
+          category: 'Transport', 
+          amount: 80, 
+          date: new Date(today.setDate(today.getDate() - 3)).toISOString().split('T')[0], 
+          description: 'Gas' 
+        },
+        { 
+          _id: '4', 
+          type: 'expense', 
+          category: 'Entertainment', 
+          amount: 120, 
+          date: new Date(today.setDate(today.getDate() - 1)).toISOString().split('T')[0], 
+          description: 'Movies' 
+        },
+        { 
+          _id: '5', 
+          type: 'expense', 
+          category: 'Utilities', 
+          amount: 200, 
+          date: new Date(today.setDate(today.getDate() - 10)).toISOString().split('T')[0], 
+          description: 'Electricity' 
+        },
+        { 
+          _id: '6', 
+          type: 'income', 
+          category: 'Freelance', 
+          amount: 300, 
+          date: new Date(today.setDate(today.getDate() - 2)).toISOString().split('T')[0], 
+          description: 'Project work' 
+        }
+      ];
+      
+      setTransactions(sampleTransactions);
+      setSummary({ income: 5300, expenses: 800, balance: 4500 });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process data for monthly trends
+  const getMonthlyTrends = () => {
+    const monthlyData = {};
+    
+    transactions.forEach(transaction => {
+      let transactionDate;
+      if (transaction.date instanceof Date) {
+        transactionDate = transaction.date;
+      } else if (transaction.date?.$date) {
+        transactionDate = new Date(transaction.date.$date.$numberLong);
+      } else {
+        transactionDate = new Date(transaction.date);
+      }
+      
+      const monthKey = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { month: monthKey, income: 0, expenses: 0, net: 0 };
+      }
+      
+      if (transaction.type === 'income') {
+        monthlyData[monthKey].income += parseFloat(transaction.amount?.$numberInt || transaction.amount);
+      } else {
+        monthlyData[monthKey].expenses += parseFloat(transaction.amount?.$numberInt || transaction.amount);
+      }
+      
+      monthlyData[monthKey].net = monthlyData[monthKey].income - monthlyData[monthKey].expenses;
+    });
+    
+    return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+  };
+
+  // Process data for daily spending trends
+  const getDailyTrends = () => {
+    const dailyData = {};
+    const today = new Date();
+    const last30Days = new Date(today);
+    last30Days.setDate(last30Days.getDate() - 30);
+    
+    transactions.forEach(transaction => {
+      let transactionDate;
+      if (transaction.date instanceof Date) {
+        transactionDate = transaction.date;
+      } else if (transaction.date?.$date) {
+        transactionDate = new Date(transaction.date.$date.$numberLong);
+      } else {
+        transactionDate = new Date(transaction.date);
+      }
+      
+      if (transactionDate >= last30Days && transactionDate <= today) {
+        const dateKey = transactionDate.toISOString().split('T')[0];
+        
+        if (!dailyData[dateKey]) {
+          dailyData[dateKey] = { date: dateKey, income: 0, expenses: 0 };
+        }
+        
+        const amount = parseFloat(transaction.amount?.$numberInt || transaction.amount);
+        
+        if (transaction.type === 'income') {
+          dailyData[dateKey].income += amount;
+        } else {
+          dailyData[dateKey].expenses += amount;
+        }
+      }
+    });
+    
+    const result = [];
+    const currentDate = new Date(last30Days);
+    
+    while (currentDate <= today) {
+      const dateKey = currentDate.toISOString().split('T')[0];
+      result.push({
+        date: dateKey,
+        income: dailyData[dateKey]?.income || 0,
+        expenses: dailyData[dateKey]?.expenses || 0
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return result;
+  };
+
+  // Process data for expense pie chart
+  const getExpensePieData = () => {
+    const expenseData = {};
+    
+    transactions.filter(t => t.type === 'expense').forEach(transaction => {
+      const category = transaction.category;
+      const amount = parseFloat(transaction.amount?.$numberInt || transaction.amount);
+      
+      if (!expenseData[category]) {
+        expenseData[category] = 0;
+      }
+      expenseData[category] += amount;
+    });
+    
+    return Object.entries(expenseData).map(([category, amount]) => ({
+      name: category,
+      value: amount
+    })).sort((a, b) => b.value - a.value);
+  };
+
+  // Process data for income pie chart
+  const getIncomePieData = () => {
+    const incomeData = {};
+    
+    transactions.filter(t => t.type === 'income').forEach(transaction => {
+      const category = transaction.category;
+      const amount = parseFloat(transaction.amount?.$numberInt || transaction.amount);
+      
+      if (!incomeData[category]) {
+        incomeData[category] = 0;
+      }
+      incomeData[category] += amount;
+    });
+    
+    return Object.entries(incomeData).map(([category, amount]) => ({
+      name: category,
+      value: amount
+    })).sort((a, b) => b.value - a.value);
+  };
+
+  // Get calendar data for the current month
+  const getCalendarData = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    // Get first day of month and last day of month
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Create calendar grid
+    const calendar = [];
+    const currentDate = new Date(firstDay);
+    
+    // Add days from previous month to fill the first week
+    const startDay = firstDay.getDay();
+    for (let i = 0; i < startDay; i++) {
+      const prevDate = new Date(firstDay);
+      prevDate.setDate(prevDate.getDate() - (startDay - i));
+      calendar.push({
+        date: new Date(prevDate),
+        isCurrentMonth: false,
+        income: 0,
+        expenses: 0
+      });
+    }
+    
+    // Add days of current month
+    while (currentDate <= lastDay) {
+      const dateKey = currentDate.toISOString().split('T')[0];
+      const dayTransactions = transactions.filter(transaction => {
+        let transactionDate;
+        if (transaction.date instanceof Date) {
+          transactionDate = transaction.date;
+        } else if (transaction.date?.$date) {
+          transactionDate = new Date(transaction.date.$date.$numberLong);
+        } else {
+          transactionDate = new Date(transaction.date);
+        }
+        return transactionDate.toISOString().split('T')[0] === dateKey;
+      });
+      
+      const income = dayTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0);
+      
+      const expenses = dayTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0);
+      
+      calendar.push({
+        date: new Date(currentDate),
+        isCurrentMonth: true,
+        income,
+        expenses,
+        net: income - expenses,
+        transactions: dayTransactions
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return calendar;
+  };
+
+  // Get transactions for a specific date
+  const getDateTransactions = (date) => {
+    const dateKey = date.toISOString().split('T')[0];
+    return transactions.filter(transaction => {
+      let transactionDate;
+      if (transaction.date instanceof Date) {
+        transactionDate = transaction.date;
+      } else if (transaction.date?.$date) {
+        transactionDate = new Date(transaction.date.$date.$numberLong);
+      } else {
+        transactionDate = new Date(transaction.date);
+      }
+      return transactionDate.toISOString().split('T')[0] === dateKey;
+    });
+  };
+
+  const monthlyTrends = getMonthlyTrends();
+  const expensePieData = getExpensePieData();
+  const incomePieData = getIncomePieData();
+  const dailyTrends = getDailyTrends();
+  const calendarData = getCalendarData();
+
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+    setShowDateDetails(true);
+  };
+
+  const navigateMonth = (direction) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + direction);
+    setCurrentMonth(newMonth);
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded-3 shadow-sm">
+          <p className="fw-bold mb-1">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="mb-0" style={{ color: entry.color }}>
+              {entry.dataKey}: ${entry.value?.toFixed(2)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const PieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="bg-white p-3 border rounded-3 shadow-sm">
+          <p className="fw-bold mb-1">{data.payload.name}</p>
+          <p className="mb-0">${data.value?.toFixed(2)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (loading) {
+    return (
+      <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p>Loading analytics...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  return (
+    <Container fluid className="px-4">
+      {error && (
+        <Alert variant="warning" className="mb-4">
+          <Activity className="me-2" size={16} />
+          Using sample data for demonstration. {error}
+        </Alert>
+      )}
+
+      {/* Header */}
+      <Row className="my-4">
+        <Col>
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <h2 className="mb-0 text-dark fw-bold">Financial Analytics</h2>
+              <p className="text-muted mb-0">Detailed insights into your financial patterns</p>
+            </div>
+            <div className="d-flex gap-3 align-items-center">
+              <Form.Select 
+                value={timeRange} 
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="w-auto"
+              >
+                <option value="1month">Last Month</option>
+                <option value="3months">Last 3 Months</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="1year">Last Year</option>
+                <option value="all">All Time</option>
+              </Form.Select>
+              <ButtonGroup>
+                <Button 
+                  variant={selectedView === 'overview' ? 'primary' : 'outline-primary'}
+                  onClick={() => setSelectedView('overview')}
+                >
+                  Overview
+                </Button>
+                <Button 
+                  variant={selectedView === 'detailed' ? 'primary' : 'outline-primary'}
+                  onClick={() => setSelectedView('detailed')}
+                >
+                  Detailed
+                </Button>
+              </ButtonGroup>
+            </div>
+          </div>
+        </Col>
+      </Row>
+
+      {/* Key Metrics */}
+      <Row className="mb-4">
+        <Col md={3}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body className="text-center">
+              <div className="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
+                <DollarSign className="text-primary" size={24} />
+              </div>
+              <h6 className="text-muted mb-1">Average Monthly Income</h6>
+              <h4 className="mb-0 text-primary fw-bold">
+                ${monthlyTrends.length ? (monthlyTrends.reduce((sum, month) => sum + month.income, 0) / monthlyTrends.length).toFixed(0) : '0'}
+              </h4>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body className="text-center">
+              <div className="bg-danger bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
+                <TrendingDown className="text-danger" size={24} />
+              </div>
+              <h6 className="text-muted mb-1">Average Monthly Expenses</h6>
+              <h4 className="mb-0 text-danger fw-bold">
+                ${monthlyTrends.length ? (monthlyTrends.reduce((sum, month) => sum + month.expenses, 0) / monthlyTrends.length).toFixed(0) : '0'}
+              </h4>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body className="text-center">
+              <div className="bg-success bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
+                <Target className="text-success" size={24} />
+              </div>
+              <h6 className="text-muted mb-1">Savings Rate</h6>
+              <h4 className="mb-0 text-success fw-bold">
+                {summary.income ? ((summary.balance / summary.income) * 100).toFixed(1) : '0'}%
+              </h4>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body className="text-center">
+              <div className="bg-warning bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
+                <BarChart3 className="text-warning" size={24} />
+              </div>
+              <h6 className="text-muted mb-1">Total Transactions</h6>
+              <h4 className="mb-0 text-warning fw-bold">
+                {transactions.length}
+              </h4>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Monthly Trends Chart */}
+      <Row className="mb-4">
+        <Col>
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="bg-white border-0 py-3">
+              <h5 className="mb-0 d-flex align-items-center gap-2">
+                <TrendingUp size={20} /> Monthly Income vs Expenses
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart data={monthlyTrends}>
+                  <defs>
+                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="#6B7280"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="#6B7280"
+                    fontSize={12}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    stackId="1"
+                    stroke="#10B981"
+                    fill="url(#incomeGradient)"
+                    name="Income"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="expenses"
+                    stackId="2"
+                    stroke="#EF4444"
+                    fill="url(#expenseGradient)"
+                    name="Expenses"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Pie Charts Row */}
+      <Row className="mb-4">
+        <Col md={6}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 py-3">
+              <h5 className="mb-0 d-flex align-items-center gap-2">
+                <BarChart3 size={20} /> Expense Breakdown
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={expensePieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {expensePieData.map((entry, index) => (
+                      <Cell key={`expense-cell-${index}`} fill={colors[index % colors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={6}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 py-3">
+              <h5 className="mb-0 d-flex align-items-center gap-2">
+                <Target size={20} /> Income Sources
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={incomePieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {incomePieData.map((entry, index) => (
+                      <Cell key={`income-cell-${index}`} fill={colors[index % colors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Financial Calendar */}
+      <Row className="mb-4">
+        <Col>
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="bg-white border-0 py-3">
+              <div className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <Calendar size={20} /> Financial Calendar - {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </h5>
+                <div className="d-flex gap-2">
+                  <Button variant="outline-secondary" size="sm" onClick={() => navigateMonth(-1)}>
+                    &larr; Prev
+                  </Button>
+                  <Button variant="outline-secondary" size="sm" onClick={() => setCurrentMonth(new Date())}>
+                    Today
+                  </Button>
+                  <Button variant="outline-secondary" size="sm" onClick={() => navigateMonth(1)}>
+                    Next &rarr;
+                  </Button>
+                </div>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <div className="calendar-grid">
+                <div className="calendar-header">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="calendar-day-header text-muted fw-bold text-uppercase small">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                <div className="calendar-body">
+                  {calendarData.map((day, index) => (
+                    <div
+                      key={index}
+                      className={`calendar-day ${day.isCurrentMonth ? 'current-month' : 'other-month'} ${
+                        day.transactions.length > 0 ? 'has-transactions' : ''
+                      }`}
+                      onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+                    >
+                      <div className="day-number">{day.date.getDate()}</div>
+                      {day.isCurrentMonth && (
+                        <div className="day-financials">
+                          {day.income > 0 && (
+                            <div className="income-indicator text-success">
+                              <Plus size={12} /> ${day.income}
+                            </div>
+                          )}
+                          {day.expenses > 0 && (
+                            <div className="expense-indicator text-danger">
+                              <Minus size={12} /> ${day.expenses}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Daily Trends */}
+      <Row className="mb-4">
+        <Col>
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="bg-white border-0 py-3">
+              <h5 className="mb-0 d-flex align-items-center gap-2">
+                <Calendar size={20} /> Daily Spending Trends (Last 30 Days)
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={dailyTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#6B7280"
+                    fontSize={12}
+                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                  />
+                  <YAxis 
+                    stroke="#6B7280"
+                    fontSize={12}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="income" 
+                    stroke="#10B981" 
+                    strokeWidth={2}
+                    name="Daily Income"
+                    dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="expenses" 
+                    stroke="#EF4444" 
+                    strokeWidth={2}
+                    name="Daily Expenses"
+                    dot={{ fill: '#EF4444', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Date Details Modal */}
+      <Modal show={showDateDetails} onHide={() => setShowDateDetails(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Transactions for {selectedDate?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedDate && (
+            <>
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Card className="bg-success bg-opacity-10 border-success">
+                    <Card.Body className="text-center">
+                      <h6 className="text-success">Total Income</h6>
+                      <h4 className="text-success mb-0">
+                        +${getDateTransactions(selectedDate)
+                          .filter(t => t.type === 'income')
+                          .reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0)
+                          .toFixed(2)}
+                      </h4>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={6}>
+                  <Card className="bg-danger bg-opacity-10 border-danger">
+                    <Card.Body className="text-center">
+                      <h6 className="text-danger">Total Expenses</h6>
+                      <h4 className="text-danger mb-0">
+                        -${getDateTransactions(selectedDate)
+                          .filter(t => t.type === 'expense')
+                          .reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0)
+                          .toFixed(2)}
+                      </h4>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+              
+              <div className="transactions-list">
+                <h6>Transaction Details</h6>
+                {getDateTransactions(selectedDate).length === 0 ? (
+                  <p className="text-muted text-center py-3">No transactions on this date</p>
+                ) : (
+                  getDateTransactions(selectedDate).map(transaction => (
+                    <Card key={transaction._id} className="mb-2">
+                      <Card.Body className="py-2">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <h6 className="mb-1">{transaction.description || transaction.category}</h6>
+                            <small className="text-muted">{transaction.category}</small>
+                          </div>
+                          <Badge bg={transaction.type === 'income' ? 'success' : 'danger'}>
+                            {transaction.type === 'income' ? '+' : '-'}${parseFloat(transaction.amount?.$numberInt || transaction.amount).toFixed(2)}
+                          </Badge>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </Modal.Body>
+      </Modal>
+
+      <style>{`
+        .calendar-grid {
+          display: flex;
+          flex-direction: column;
+          height: 400px;
+        }
+        .calendar-header {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          border-bottom: 1px solid #dee2e6;
+          padding-bottom: 10px;
+          margin-bottom: 10px;
+        }
+        .calendar-body {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          grid-template-rows: repeat(6, 1fr);
+          flex: 1;
+          gap: 2px;
+        }
+        .calendar-day {
+          border: 1px solid #e9ecef;
+          padding: 5px;
+          min-height: 80px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .calendar-day.other-month {
+          background-color: #f8f9fa;
+          color: #6c757d;
+        }
+        .calendar-day.current-month:hover {
+          background-color: #e3f2fd;
+          border-color: #2196f3;
+        }
+        .calendar-day.has-transactions {
+          background-color: #fff3cd;
+        }
+        .day-number {
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        .day-financials {
+          font-size: 0.75rem;
+        }
+        .income-indicator, .expense-indicator {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          margin-bottom: 2px;
+        }
+        .calendar-day-header {
+          text-align: center;
+          padding: 5px;
+        }
+      `}</style>
+    </Container>
+  );
+};
+
+export default Reports;
