@@ -79,7 +79,16 @@ const FinancialAdvicePage = () => {
 
     // ... (The JSX part of your component remains exactly the same)
     return (
-        <Container fluid className="px-4">
+            <Container 
+          fluid 
+          className="px-4" 
+          style={{
+            background: 'linear-gradient(135deg, #b5d3f058 0%, #7da9e05a 50%, #4362ee4d 100%)',
+            minHeight: '100vh',
+            paddingTop: '20px',
+            paddingBottom: '20px'
+          }}
+        >
             <Row className="my-4">
                 <Col>
                     <div>

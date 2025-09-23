@@ -387,7 +387,16 @@ const Dashboard = () => {
   }
 
   return (
-    <Container fluid className="px-4">
+    <Container 
+  fluid 
+  className="px-4" 
+  style={{
+    background: 'linear-gradient(135deg, #b5d3f058 0%, #7da9e05a 50%, #4362ee4d 100%)',
+    minHeight: '100vh',
+    paddingTop: '20px',
+    paddingBottom: '20px'
+  }}
+>
       {/* Toast Notifications */}
       <ToastContainer position="top-end" className="position-fixed p-3" style={{ zIndex: 9999 }}>
         <Toast show={showToast} onClose={() => setShowToast(false)} delay={5000} autohide>

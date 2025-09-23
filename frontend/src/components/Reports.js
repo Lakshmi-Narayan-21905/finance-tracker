@@ -453,7 +453,16 @@ const Reports = () => {
   }
 
   return (
-    <Container fluid className="px-4">
+        <Container 
+      fluid 
+      className="px-4" 
+      style={{
+        background: 'linear-gradient(135deg, #b5d3f058 0%, #7da9e05a 50%, #4362ee4d 100%)',
+        minHeight: '100vh',
+        paddingTop: '20px',
+        paddingBottom: '20px'
+      }}
+    >
       {error && (
         <Alert variant="warning" className="mb-4">
           <Activity className="me-2" size={16} />
@@ -469,33 +478,7 @@ const Reports = () => {
               <h2 className="mb-0 text-dark fw-bold">Financial Analytics</h2>
               <p className="text-muted mb-0">Detailed insights into your financial patterns</p>
             </div>
-            <div className="d-flex gap-3 align-items-center">
-              <Form.Select 
-                value={timeRange} 
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="w-auto"
-              >
-                <option value="1month">Last Month</option>
-                <option value="3months">Last 3 Months</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="1year">Last Year</option>
-                <option value="all">All Time</option>
-              </Form.Select>
-              <ButtonGroup>
-                <Button 
-                  variant={selectedView === 'overview' ? 'primary' : 'outline-primary'}
-                  onClick={() => setSelectedView('overview')}
-                >
-                  Overview
-                </Button>
-                <Button 
-                  variant={selectedView === 'detailed' ? 'primary' : 'outline-primary'}
-                  onClick={() => setSelectedView('detailed')}
-                >
-                  Detailed
-                </Button>
-              </ButtonGroup>
-            </div>
+           
           </div>
         </Col>
       </Row>

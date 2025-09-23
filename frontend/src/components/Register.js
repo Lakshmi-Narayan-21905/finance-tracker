@@ -17,7 +17,12 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // ✅ Client-side validation
+    if (password.length < 6) {
+      return setError('Password must be at least 6 characters long');
+    }
+
     if (password !== passwordConfirm) {
       return setError('Passwords do not match');
     }
@@ -40,7 +45,10 @@ const Register = () => {
   };
 
   return (
-    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh" }}>
+    <Container 
+      className="d-flex align-items-center justify-content-center" 
+      style={{ minHeight: "100vh" }}
+    >
       <div className="w-100" style={{ maxWidth: "400px" }}>
         <Card>
           <Card.Body>
@@ -72,7 +80,11 @@ const Register = () => {
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  isInvalid={password.length > 0 && password.length < 6}
                 />
+                <Form.Control.Feedback type="invalid">
+                  Password must be at least 6 characters long
+                </Form.Control.Feedback>
               </Form.Group>
               <Form.Group id="password-confirm" className="mb-3">
                 <Form.Label>Password Confirmation</Form.Label>
@@ -81,7 +93,11 @@ const Register = () => {
                   required 
                   value={passwordConfirm}
                   onChange={(e) => setPasswordConfirm(e.target.value)}
+                  isInvalid={passwordConfirm.length > 0 && password !== passwordConfirm}
                 />
+                <Form.Control.Feedback type="invalid">
+                  Passwords do not match
+                </Form.Control.Feedback>
               </Form.Group>
               <Button disabled={loading} className="w-100" type="submit">
                 Sign Up
