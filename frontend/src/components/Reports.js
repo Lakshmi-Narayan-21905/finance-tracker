@@ -549,16 +549,7 @@ const fetchData = async () => {
               <p className="text-muted mb-0">Detailed insights into your financial patterns</p>
             </div>
             <div className="d-flex gap-3 align-items-center">
-              <Form.Select 
-                value={timeRange} 
-                onChange={(e) => setTimeRange(e.target.value)}
-                style={{ width: 'auto' }}
-              >
-                <option value="1month">Last Month</option>
-                <option value="3months">Last 3 Months</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="1year">Last Year</option>
-              </Form.Select>
+             
             </div>
           </div>
         </Col>
