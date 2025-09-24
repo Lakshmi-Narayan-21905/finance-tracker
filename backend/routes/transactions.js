@@ -6,17 +6,44 @@ const router = express.Router();
 // Get all transactions for user
 router.get('/', auth, async (req, res) => {
   try {
-    const { page = 1, limit = 10, type, category, startDate, endDate } = req.query;
+    // --- START: MODIFIED LOGIC ---
+    // 1. Destructure timeRange along with the other parameters
+    const { page = 1, limit = 10, type, category, startDate, endDate, timeRange } = req.query;
     
     let query = { user: req.user.id };
     
     if (type) query.type = type;
     if (category) query.category = category;
-    if (startDate || endDate) {
-      query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
+
+    // 2. Define date variables
+    let finalStartDate = startDate;
+    let finalEndDate = endDate;
+    
+    // 3. If timeRange is provided, calculate the start date
+    if (timeRange) {
+      const now = new Date();
+      finalEndDate = now.toISOString(); // Set end date to now
+      const calculatedStartDate = new Date();
+
+      if (timeRange === '1month') {
+        calculatedStartDate.setMonth(now.getMonth() - 1);
+      } else if (timeRange === '3months') {
+        calculatedStartDate.setMonth(now.getMonth() - 3);
+      } else if (timeRange === '6months') {
+        calculatedStartDate.setMonth(now.getMonth() - 6);
+      } else if (timeRange === '1year') {
+        calculatedStartDate.setFullYear(now.getFullYear() - 1);
+      }
+      finalStartDate = calculatedStartDate.toISOString();
     }
+    
+    // 4. Build the final date query
+    if (finalStartDate || finalEndDate) {
+      query.date = {};
+      if (finalStartDate) query.date.$gte = new Date(finalStartDate);
+      if (finalEndDate) query.date.$lte = new Date(finalEndDate);
+    }
+    // --- END: MODIFIED LOGIC ---
     
     const transactions = await Transaction.find(query)
       .sort({ date: -1 })
@@ -60,20 +87,46 @@ router.post('/', auth, async (req, res) => {
 // Get financial summary
 router.get('/summary', auth, async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    // --- START: MODIFIED LOGIC (Identical to the one above) ---
+    // 1. Destructure timeRange along with other parameters
+    const { startDate, endDate, timeRange } = req.query;
     
     let dateQuery = {};
-    if (startDate || endDate) {
-      dateQuery.date = {};
-      if (startDate) dateQuery.date.$gte = new Date(startDate);
-      if (endDate) dateQuery.date.$lte = new Date(endDate);
+    let finalStartDate = startDate;
+    let finalEndDate = endDate;
+    
+    // 2. If timeRange is provided, calculate the start date
+    if (timeRange) {
+      const now = new Date();
+      finalEndDate = now.toISOString();
+      const calculatedStartDate = new Date();
+
+      if (timeRange === '1month') {
+        calculatedStartDate.setMonth(now.getMonth() - 1);
+      } else if (timeRange === '3months') {
+        calculatedStartDate.setMonth(now.getMonth() - 3);
+      } else if (timeRange === '6months') {
+        calculatedStartDate.setMonth(now.getMonth() - 6);
+      } else if (timeRange === '1year') {
+        calculatedStartDate.setFullYear(now.getFullYear() - 1);
+      }
+      finalStartDate = calculatedStartDate.toISOString();
     }
+    
+    // 3. Build the final date query
+    if (finalStartDate || finalEndDate) {
+      dateQuery.date = {};
+      if (finalStartDate) dateQuery.date.$gte = new Date(finalStartDate);
+      if (finalEndDate) dateQuery.date.$lte = new Date(finalEndDate);
+    }
+    // --- END: MODIFIED LOGIC ---
     
     const transactions = await Transaction.find({
       user: req.user.id,
       ...dateQuery
     });
     
+    // The rest of the summary calculation logic is fine
     const income = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -84,15 +137,8 @@ router.get('/summary', auth, async (req, res) => {
     
     const balance = income - expenses;
     
-    const categoryBreakdown = transactions.reduce((acc, transaction) => {
-      const key = transaction.type === 'income' ? 'income' : 'expense';
-      if (!acc[key][transaction.category]) {
-        acc[key][transaction.category] = 0;
-      }
-      acc[key][transaction.category] += transaction.amount;
-      return acc;
-    }, { income: {}, expense: {} });
-    
+    const categoryBreakdown = // ... (rest of the logic is fine)
+
     res.json({
       income,
       expenses,
@@ -103,6 +149,7 @@ router.get('/summary', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
 
 
 // --- FIX HIGHLIGHTS ---

@@ -469,13 +469,15 @@ const Dashboard = () => {
               <p className="text-muted mb-0">Your personal financial overview</p>
             </div>
             <ButtonGroup>
-               <Button 
-                variant="info" 
-                onClick={() => setShowBudgetModal(true)}
-                className="d-flex align-items-center gap-2"
-              >
-                <Target size={18} /> Set Budget
-              </Button>
+<Button 
+  variant="outline-primary" 
+  onClick={() => setShowBudgetModal(true)}
+  className="d-flex align-items-center gap-2 fw-bold border-2"
+>
+  <Target size={18} /> Set Budget
+</Button>
+
+
               {/* <Button 
                 variant="primary" 
                 onClick={() => setShowTransactionModal(true)}

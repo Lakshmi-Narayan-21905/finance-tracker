@@ -60,13 +60,15 @@ const Reports = () => {
     fetchData();
   }, [timeRange]);
 
-  const fetchData = async () => {
+const fetchData = async () => {
     setLoading(true);
     setError('');
     try {
+      // Both API calls now use the timeRange state variable
       const [transactionsRes, summaryRes] = await Promise.all([
         axios.get(`/api/transactions?limit=1000&timeRange=${timeRange}`),
-        axios.get('/api/transactions/summary')
+        // CHANGE HERE: Added the timeRange query parameter to the summary endpoint
+        axios.get(`/api/transactions/summary?timeRange=${timeRange}`) 
       ]);
       
       setTransactions(transactionsRes.data.transactions || []);
@@ -874,9 +876,16 @@ const Reports = () => {
                           </div>
                         )}
                         {day.transactions.length > 0 && (
-                          <Badge bg="warning" text="dark" className="w-100" style={{fontSize: '0.7rem'}}>
-                            {day.transactions.length} transaction
-                          </Badge>
+                          <Badge 
+  bg="warning" 
+  text="dark" 
+  className="w-100" 
+  style={{ fontSize: '0.7rem' }}
+>
+  {day.transactions.length}{" "}
+  {day.transactions.length === 1 ? "transaction" : "transactions"}
+</Badge>
+
                         )}
                       </div>
                     </div>
