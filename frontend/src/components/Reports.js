@@ -62,6 +62,7 @@ const Reports = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setError('');
     try {
       const [transactionsRes, summaryRes] = await Promise.all([
         axios.get(`/api/transactions?limit=1000&timeRange=${timeRange}`),
@@ -70,82 +71,13 @@ const Reports = () => {
       
       setTransactions(transactionsRes.data.transactions || []);
       setSummary(summaryRes.data || {});
-      setError('');
     } catch (error) {
-      setError('Failed to load analytics data');
+      setError('Failed to load analytics data. Please try again later.');
       console.error('Error fetching analytics data:', error);
       
-      // Sample data for demonstration with realistic dates
-      const today = new Date();
-      const sampleTransactions = [
-        { 
-          _id: '1', 
-          type: 'expense', 
-          category: 'Food', 
-          amount: 400, 
-          date: new Date(today.setDate(today.getDate() - 1)).toISOString().split('T')[0], 
-          description: 'Groceries' 
-        },
-        { 
-          _id: '2', 
-          type: 'income', 
-          category: 'Salary', 
-          amount: 5000, 
-          date: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0], 
-          description: 'Monthly salary' 
-        },
-        { 
-          _id: '3', 
-          type: 'expense', 
-          category: 'Transport', 
-          amount: 80, 
-          date: new Date(today.setDate(today.getDate() - 2)).toISOString().split('T')[0], 
-          description: 'Gas' 
-        },
-        { 
-          _id: '4', 
-          type: 'expense', 
-          category: 'Entertainment', 
-          amount: 120, 
-          date: new Date(today.setDate(today.getDate() - 3)).toISOString().split('T')[0], 
-          description: 'Movies' 
-        },
-        { 
-          _id: '5', 
-          type: 'expense', 
-          category: 'Utilities', 
-          amount: 200, 
-          date: new Date(today.setDate(today.getDate() - 4)).toISOString().split('T')[0], 
-          description: 'Electricity' 
-        },
-        { 
-          _id: '6', 
-          type: 'income', 
-          category: 'Freelance', 
-          amount: 300, 
-          date: new Date(today.setDate(today.getDate() - 5)).toISOString().split('T')[0], 
-          description: 'Project work' 
-        },
-        { 
-          _id: '7', 
-          type: 'expense', 
-          category: 'Shopping', 
-          amount: 150, 
-          date: new Date(today.setDate(today.getDate() - 6)).toISOString().split('T')[0], 
-          description: 'Clothes' 
-        },
-        { 
-          _id: '8', 
-          type: 'expense', 
-          category: 'Food', 
-          amount: 60, 
-          date: new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0], 
-          description: 'Restaurant' 
-        }
-      ];
-      
-      setTransactions(sampleTransactions);
-      setSummary({ income: 5300, expenses: 1010, balance: 4290 });
+      // Clear data on error to show the "No Data" message
+      setTransactions([]);
+      setSummary({});
     } finally {
       setLoading(false);
     }
@@ -453,6 +385,27 @@ const Reports = () => {
     );
   }
 
+  // --- NEW: RENDER THIS VIEW IF THERE ARE NO TRANSACTIONS ---
+  if (!loading && transactions.length === 0) {
+    return (
+      <Container 
+          className="d-flex justify-content-center align-items-center" 
+          style={{ minHeight: '80vh' }}
+      >
+          <div className="text-center text-muted">
+              {error && (
+                <Alert variant="warning" className="mb-4">
+                  {error}
+                </Alert>
+              )}
+              <BarChart3 size={48} className="mb-3" />
+              <h4>No Financial Data Found</h4>
+              <p>Start by adding your first transaction to see your reports.</p>
+          </div>
+      </Container>
+    );
+  }
+
   return (
     <Container 
       fluid 
@@ -467,10 +420,10 @@ const Reports = () => {
       {/* Custom CSS for hover effects */}
       <style>{`
       .custom-btn:hover {
-  background-color: #0099ff6c !important;  
-  color: white !important;               
-}
-
+        background-color: #0099ff6c !important; 
+        color: white !important;         
+      }
+      
         .hover-card {
           transition: all 0.3s ease;
           border: 1px solid #007bff !important;
@@ -577,52 +530,13 @@ const Reports = () => {
           box-shadow: 0 10px 30px rgba(0, 123, 255, 0.15) !important;
           border: 1px solid #0056b3 !important;
         }
-        
-        .metric-card .bg-primary {
-          transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover .bg-primary {
-          background-color: rgba(0, 123, 255, 0.2) !important;
-        }
-        
-        .metric-card .bg-danger {
-          transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover .bg-danger {
-          background-color: rgba(220, 53, 69, 0.2) !important;
-        }
-        
-        .metric-card .bg-success {
-          transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover .bg-success {
-          background-color: rgba(25, 135, 84, 0.2) !important;
-        }
-        
-        .metric-card .bg-warning {
-          transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover .bg-warning {
-          background-color: rgba(255, 193, 7, 0.2) !important;
-        }
-        
+
         .calendar-container {
           background: white;
           border-radius: 8px;
           overflow: hidden;
         }
       `}</style>
-
-      {error && (
-        <Alert variant="warning" className="mb-4">
-          <Activity className="me-2" size={16} />
-          Using sample data for demonstration. {error}
-        </Alert>
-      )}
 
       {/* Header */}
       <Row className="my-4">
@@ -961,7 +875,7 @@ const Reports = () => {
                         )}
                         {day.transactions.length > 0 && (
                           <Badge bg="warning" text="dark" className="w-100" style={{fontSize: '0.7rem'}}>
-                            {day.transactions.length} trans
+                            {day.transactions.length} transaction
                           </Badge>
                         )}
                       </div>
