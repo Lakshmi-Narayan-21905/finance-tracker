@@ -388,15 +388,64 @@ const Dashboard = () => {
 
   return (
     <Container 
-  fluid 
-  className="px-4" 
-  style={{
-    background: 'linear-gradient(135deg, #b5d3f058 0%, #7da9e05a 50%, #4362ee4d 100%)',
-    minHeight: '100vh',
-    paddingTop: '20px',
-    paddingBottom: '20px'
-  }}
->
+      fluid 
+      className="px-4" 
+      style={{
+        background: 'linear-gradient(135deg, #0099ff0c 0%, #0099ff1c 25%, #0099ff1c 50%, #0099ff2c 75%, #0099ff2c 100%)',
+        minHeight: '100vh',
+        paddingTop: '20px',
+        paddingBottom: '20px'
+      }}
+    >
+      {/* Custom CSS for hover effects */}
+      <style jsx>{`
+        .hover-card {
+          transition: all 0.3s ease;
+          border: 1px solid #007bff !important;
+        }
+        
+        .hover-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15) !important;
+          border: 1px solid #0056b3 !important;
+        }
+        
+        .budget-item {
+          transition: all 0.3s ease;
+          border: 1px solid #e9ecef !important;
+        }
+        
+        .budget-item:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
+          border: 1px solid #007bff !important;
+        }
+        
+        .budget-item.overspent {
+          border: 1px solid #dc3545 !important;
+        }
+        
+        .budget-item.near-limit {
+          border: 1px solid #ffc107 !important;
+        }
+        
+        .budget-item.overspent:hover {
+          border: 1px solid #c82333 !important;
+        }
+        
+        .budget-item.near-limit:hover {
+          border: 1px solid #e0a800 !important;
+        }
+        
+        .table-row {
+          transition: background-color 0.2s ease;
+        }
+        
+        .table-row:hover {
+          background-color: rgba(0, 123, 255, 0.05) !important;
+        }
+      `}</style>
+
       {/* Toast Notifications */}
       <ToastContainer position="top-end" className="position-fixed p-3" style={{ zIndex: 9999 }}>
         <Toast show={showToast} onClose={() => setShowToast(false)} delay={5000} autohide>
@@ -476,7 +525,7 @@ const Dashboard = () => {
       {/* Summary Cards */}
       <Row className="mb-4">
         <Col md={4}>
-            <Card className="border-0 shadow-sm h-100">
+            <Card className="border-0 shadow-sm h-100 hover-card">
                 <Card.Body className="d-flex align-items-center">
                 <div className="bg-success bg-opacity-10 p-3 rounded-3 me-3">
                     <TrendingUp className="text-success" size={24} />
@@ -489,7 +538,7 @@ const Dashboard = () => {
             </Card>
         </Col>
         <Col md={4}>
-            <Card className="border-0 shadow-sm h-100">
+            <Card className="border-0 shadow-sm h-100 hover-card">
                 <Card.Body className="d-flex align-items-center">
                 <div className="bg-danger bg-opacity-10 p-3 rounded-3 me-3">
                     <TrendingDown className="text-danger" size={24} />
@@ -502,7 +551,7 @@ const Dashboard = () => {
             </Card>
         </Col>
         <Col md={4}>
-            <Card className="border-0 shadow-sm h-100">
+            <Card className="border-0 shadow-sm h-100 hover-card">
                 <Card.Body className="d-flex align-items-center">
                 <div className="bg-primary bg-opacity-10 p-3 rounded-3 me-3">
                     <DollarSign className="text-primary" size={24} />
@@ -522,7 +571,7 @@ const Dashboard = () => {
       {budgets.length > 0 && (
         <Row className="mb-4">
           <Col>
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm hover-card">
               <Card.Header className="bg-white border-0 py-3">
                 <div className="d-flex justify-content-between align-items-center">
                   <h5 className="mb-0 d-flex align-items-center gap-2">
@@ -543,7 +592,11 @@ const Dashboard = () => {
                     
                     return (
                       <Col md={6} lg={4} key={budget._id} className="mb-3">
-                        <div className={`p-3 border rounded-3 h-100 ${progress.isOverspent ? 'border-danger bg-danger bg-opacity-10' : progress.isNearLimit ? 'border-warning bg-warning bg-opacity-10' : 'border-light'}`}>
+                        <div className={`p-3 rounded-3 h-100 budget-item ${
+                          progress.isOverspent ? 'overspent bg-danger bg-opacity-10' : 
+                          progress.isNearLimit ? 'near-limit bg-warning bg-opacity-10' : 
+                          ''
+                        }`}>
                           <div className="d-flex justify-content-between align-items-center mb-2">
                             <h6 className="mb-0">{budget.category}</h6>
                             <div className="d-flex align-items-center gap-2">
@@ -611,11 +664,10 @@ const Dashboard = () => {
         </Row>
       )}
 
-
       {/* Filters and Search */}
       <Row className="mb-3">
         <Col>
-          <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-sm hover-card">
             <Card.Body className="py-3">
               <Row className="g-2 align-items-center">
                 <Col lg={4}>
@@ -691,7 +743,7 @@ const Dashboard = () => {
       {/* Transactions Table */}
       <Row>
         <Col>
-          <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-sm hover-card">
             <Card.Header className="bg-white border-0 py-3">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Recent Transactions</h5>
@@ -721,7 +773,7 @@ const Dashboard = () => {
                     </thead>
                     <tbody>
                       {filteredTransactions.map(transaction => (
-                        <tr key={transaction._id}>
+                        <tr key={transaction._id} className="table-row">
                           <td className="py-3 ps-3">
                             {new Date(transaction.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                           </td>

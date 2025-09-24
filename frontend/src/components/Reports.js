@@ -10,7 +10,8 @@ import {
   Form,
   Alert,
   Badge,
-  Modal
+  Modal,
+  ListGroup
 } from 'react-bootstrap';
 import {
   LineChart,
@@ -453,16 +454,169 @@ const Reports = () => {
   }
 
   return (
-        <Container 
+    <Container 
       fluid 
       className="px-4" 
       style={{
-        background: 'linear-gradient(135deg, #b5d3f058 0%, #7da9e05a 50%, #4362ee4d 100%)',
+        background: 'linear-gradient(135deg, #0099ff0c 0%, #0099ff1c 25%, #0099ff1c 50%, #0099ff2c 75%, #0099ff2c 100%)',
         minHeight: '100vh',
         paddingTop: '20px',
         paddingBottom: '20px'
       }}
     >
+      {/* Custom CSS for hover effects */}
+      <style>{`
+      .custom-btn:hover {
+  background-color: #0099ff6c !important;  
+  color: white !important;               
+}
+
+        .hover-card {
+          transition: all 0.3s ease;
+          border: 1px solid #007bff !important;
+        }
+        
+        .hover-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15) !important;
+          border: 1px solid #0056b3 !important;
+        }
+        
+        .calendar-day {
+          border: 1px solid #e9ecef;
+          padding: 8px;
+          min-height: 100px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .calendar-day.current-month {
+          background-color: white;
+        }
+        
+        .calendar-day.current-month:hover {
+          background-color: rgba(0, 123, 255, 0.1);
+          border-color: #007bff;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 10px rgba(0, 123, 255, 0.1);
+        }
+        
+        .calendar-day.other-month {
+          background-color: #f8f9fa;
+          color: #6c757d;
+        }
+        
+        .calendar-day.has-transactions {
+          background-color: #fff3cd;
+          border-color: #ffc107;
+        }
+        
+        .calendar-day.has-transactions:hover {
+          background-color: rgba(255, 193, 7, 0.2);
+          border-color: #e0a800;
+        }
+        
+        .day-number {
+          font-weight: bold;
+          margin-bottom: 5px;
+          font-size: 0.9rem;
+        }
+        
+        .day-financials {
+          font-size: 0.75rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+        
+        .income-indicator, .expense-indicator {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          margin-bottom: 2px;
+        }
+        
+        .calendar-day-header {
+          text-align: center;
+          padding: 10px;
+          font-weight: bold;
+          background-color: #f8f9fa;
+          border-bottom: 1px solid #dee2e6;
+        }
+        
+        .calendar-grid {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .calendar-header {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          border-bottom: 2px solid #dee2e6;
+        }
+        
+        .calendar-body {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          grid-auto-rows: 1fr;
+          gap: 1px;
+          background-color: #dee2e6;
+          border: 1px solid #dee2e6;
+        }
+        
+        .metric-card {
+          transition: all 0.3s ease;
+          border: 1px solid #007bff !important;
+        }
+        
+        .metric-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 30px rgba(0, 123, 255, 0.15) !important;
+          border: 1px solid #0056b3 !important;
+        }
+        
+        .metric-card .bg-primary {
+          transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover .bg-primary {
+          background-color: rgba(0, 123, 255, 0.2) !important;
+        }
+        
+        .metric-card .bg-danger {
+          transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover .bg-danger {
+          background-color: rgba(220, 53, 69, 0.2) !important;
+        }
+        
+        .metric-card .bg-success {
+          transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover .bg-success {
+          background-color: rgba(25, 135, 84, 0.2) !important;
+        }
+        
+        .metric-card .bg-warning {
+          transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover .bg-warning {
+          background-color: rgba(255, 193, 7, 0.2) !important;
+        }
+        
+        .calendar-container {
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+      `}</style>
+
       {error && (
         <Alert variant="warning" className="mb-4">
           <Activity className="me-2" size={16} />
@@ -478,7 +632,18 @@ const Reports = () => {
               <h2 className="mb-0 text-dark fw-bold">Financial Analytics</h2>
               <p className="text-muted mb-0">Detailed insights into your financial patterns</p>
             </div>
-           
+            <div className="d-flex gap-3 align-items-center">
+              <Form.Select 
+                value={timeRange} 
+                onChange={(e) => setTimeRange(e.target.value)}
+                style={{ width: 'auto' }}
+              >
+                <option value="1month">Last Month</option>
+                <option value="3months">Last 3 Months</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="1year">Last Year</option>
+              </Form.Select>
+            </div>
           </div>
         </Col>
       </Row>
@@ -486,7 +651,7 @@ const Reports = () => {
       {/* Key Metrics */}
       <Row className="mb-4">
         <Col md={3}>
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="border-0 shadow-sm h-100 metric-card">
             <Card.Body className="text-center">
               <div className="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
                 <DollarSign className="text-primary" size={24} />
@@ -499,7 +664,7 @@ const Reports = () => {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="border-0 shadow-sm h-100 metric-card">
             <Card.Body className="text-center">
               <div className="bg-danger bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
                 <TrendingDown className="text-danger" size={24} />
@@ -512,7 +677,7 @@ const Reports = () => {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="border-0 shadow-sm h-100 metric-card">
             <Card.Body className="text-center">
               <div className="bg-success bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
                 <Target className="text-success" size={24} />
@@ -525,7 +690,7 @@ const Reports = () => {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="border-0 shadow-sm h-100 metric-card">
             <Card.Body className="text-center">
               <div className="bg-warning bg-opacity-10 p-3 rounded-circle d-inline-flex mb-3">
                 <BarChart3 className="text-warning" size={24} />
@@ -539,130 +704,209 @@ const Reports = () => {
         </Col>
       </Row>
 
-      {/* Monthly Trends Chart */}
+      {/* View Toggle - Only Overview and Trends */}
       <Row className="mb-4">
         <Col>
           <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-white border-0 py-3">
-              <h5 className="mb-0 d-flex align-items-center gap-2">
-                <TrendingUp size={20} /> Monthly Income vs Expenses
-              </h5>
-            </Card.Header>
-            <Card.Body>
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={monthlyTrends}>
-                  <defs>
-                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="month" 
-                    stroke="#6B7280"
-                    fontSize={12}
-                  />
-                  <YAxis 
-                    stroke="#6B7280"
-                    fontSize={12}
-                    tickFormatter={(value) => `$${value}`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="income"
-                    stackId="1"
-                    stroke="#10B981"
-                    fill="url(#incomeGradient)"
-                    name="Income"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="expenses"
-                    stackId="2"
-                    stroke="#EF4444"
-                    fill="url(#expenseGradient)"
-                    name="Expenses"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <Card.Body className="py-2">
+              <ButtonGroup className="w-100">
+                <Button
+                  variant={selectedView === 'overview' ? 'primary' : 'outline-primary'}
+                  onClick={() => setSelectedView('overview')}
+                  className="d-flex align-items-center justify-content-center gap-2 custom-btn"
+                >
+                  <BarChart3 size={16} />
+                  Overview
+                </Button>
+                <Button
+                  variant={selectedView === 'trends' ? 'primary' : 'outline-primary'}
+                  onClick={() => setSelectedView('trends')}
+                  className="d-flex align-items-center justify-content-center gap-2 custom-btn"
+                >
+                  <TrendingUp size={16} />
+                  Trends
+                </Button>
+              </ButtonGroup>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Pie Charts Row */}
-      <Row className="mb-4">
-        <Col md={6}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Header className="bg-white border-0 py-3">
-              <h5 className="mb-0 d-flex align-items-center gap-2">
-                <BarChart3 size={20} /> Expense Breakdown
-              </h5>
-            </Card.Header>
-            <Card.Body>
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart>
-                  <Pie
-                    data={expensePieData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {expensePieData.map((entry, index) => (
-                      <Cell key={`expense-cell-${index}`} fill={colors[index % colors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Header className="bg-white border-0 py-3">
-              <h5 className="mb-0 d-flex align-items-center gap-2">
-                <Target size={20} /> Income Sources
-              </h5>
-            </Card.Header>
-            <Card.Body>
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart>
-                  <Pie
-                    data={incomePieData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {incomePieData.map((entry, index) => (
-                      <Cell key={`income-cell-${index}`} fill={colors[index % colors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {/* Overview View */}
+      {selectedView === 'overview' && (
+        <>
+          {/* Monthly Trends Chart */}
+          <Row className="mb-4">
+            <Col>
+              <Card className="border-0 shadow-sm hover-card">
+                <Card.Header className="bg-white border-0 py-3">
+                  <h5 className="mb-0 d-flex align-items-center gap-2">
+                    <TrendingUp size={20} /> Monthly Income vs Expenses
+                  </h5>
+                </Card.Header>
+                <Card.Body>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <AreaChart data={monthlyTrends}>
+                      <defs>
+                        <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="month" 
+                        stroke="#6B7280"
+                        fontSize={12}
+                      />
+                      <YAxis 
+                        stroke="#6B7280"
+                        fontSize={12}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="income"
+                        stackId="1"
+                        stroke="#10B981"
+                        fill="url(#incomeGradient)"
+                        name="Income"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="expenses"
+                        stackId="2"
+                        stroke="#EF4444"
+                        fill="url(#expenseGradient)"
+                        name="Expenses"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
 
-      {/* Financial Calendar */}
+          {/* Pie Charts Row */}
+          <Row className="mb-4">
+            <Col md={6}>
+              <Card className="border-0 shadow-sm h-100 hover-card">
+                <Card.Header className="bg-white border-0 py-3">
+                  <h5 className="mb-0 d-flex align-items-center gap-2">
+                    <BarChart3 size={20} /> Expense Breakdown
+                  </h5>
+                </Card.Header>
+                <Card.Body>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={expensePieData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {expensePieData.map((entry, index) => (
+                          <Cell key={`expense-cell-${index}`} fill={colors[index % colors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6}>
+              <Card className="border-0 shadow-sm h-100 hover-card">
+                <Card.Header className="bg-white border-0 py-3">
+                  <h5 className="mb-0 d-flex align-items-center gap-2">
+                    <Target size={20} /> Income Sources
+                  </h5>
+                </Card.Header>
+                <Card.Body>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={incomePieData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {incomePieData.map((entry, index) => (
+                          <Cell key={`income-cell-${index}`} fill={colors[index % colors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {/* Trends View */}
+      {selectedView === 'trends' && (
+        <Row className="mb-4">
+          <Col>
+            <Card className="border-0 shadow-sm hover-card">
+              <Card.Header className="bg-white border-0 py-3">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <Activity size={20} /> Daily Financial Trends (Last 7 Days)
+                </h5>
+              </Card.Header>
+              <Card.Body>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={dailyTrends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="shortDate" 
+                      stroke="#6B7280"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="#6B7280"
+                      fontSize={12}
+                      tickFormatter={(value) => `$${value}`}
+                    />
+                    <Tooltip content={<DailyTrendsTooltip />} />
+                    <Legend />
+                    <Bar
+                      dataKey="income"
+                      fill="#10B981"
+                      name="Income"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="expenses"
+                      fill="#EF4444"
+                      name="Expenses"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {/* Financial Calendar - Always displayed below Overview/Trends */}
       <Row className="mb-4">
         <Col>
-          <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-sm hover-card">
             <Card.Header className="bg-white border-0 py-3">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0 d-flex align-items-center gap-2">
@@ -681,93 +925,50 @@ const Reports = () => {
                 </div>
               </div>
             </Card.Header>
-            <Card.Body>
-              <div className="calendar-grid">
+            <Card.Body className="p-0">
+              <div className="calendar-container">
                 <div className="calendar-header">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="calendar-day-header text-muted fw-bold text-uppercase small">
+                    <div key={day} className="calendar-day-header">
                       {day}
                     </div>
                   ))}
                 </div>
                 <div className="calendar-body">
-                  {calendarData && calendarData.length > 0 ? (
-                    calendarData.map((day, index) => (
-                      <div
-                        key={index}
-                        className={`calendar-day ${day.isCurrentMonth ? 'current-month' : 'other-month'} ${
-                          day.transactions && day.transactions.length > 0 ? 'has-transactions' : ''
-                        }`}
-                        onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
-                      >
-                        <div className="day-number">{day.date.getDate()}</div>
-                        {day.isCurrentMonth && (
-                          <div className="day-financials">
-                            {day.income > 0 && (
-                              <div className="income-indicator text-success">
-                                <Plus size={12} /> ${day.income}
-                              </div>
-                            )}
-                            {day.expenses > 0 && (
-                              <div className="expense-indicator text-danger">
-                                <Minus size={12} /> ${day.expenses}
-                              </div>
-                            )}
+                  {calendarData.map((day, index) => (
+                    <div
+                      key={index}
+                      className={`calendar-day ${day.isCurrentMonth ? 'current-month' : 'other-month'} ${
+                        day.transactions.length > 0 ? 'has-transactions' : ''
+                      }`}
+                      onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+                    >
+                      <div className="day-number">
+                        {day.date.getDate()}
+                      </div>
+                      <div className="day-financials">
+                        {day.income > 0 && (
+                          <div className="income-indicator text-success">
+                            <Plus size={10} />
+                            <small>${day.income}</small>
                           </div>
                         )}
+                        {day.expenses > 0 && (
+                          <div className="expense-indicator text-danger">
+                            <Minus size={10} />
+                            <small>${day.expenses}</small>
+                          </div>
+                        )}
+                        {day.transactions.length > 0 && (
+                          <Badge bg="warning" text="dark" className="w-100" style={{fontSize: '0.7rem'}}>
+                            {day.transactions.length} trans
+                          </Badge>
+                        )}
                       </div>
-                    ))
-                  ) : (
-                    <div className="w-100 text-center py-5 text-muted">
-                      No calendar data available
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Daily Trends - BAR CHART (Last 7 Days) */}
-      <Row className="mb-4">
-        <Col>
-          <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-white border-0 py-3">
-              <h5 className="mb-0 d-flex align-items-center gap-2">
-                <BarChart3 size={20} /> Daily Spending Trends (Last 7 Days)
-              </h5>
-            </Card.Header>
-            <Card.Body>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dailyTrends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="shortDate" 
-                    stroke="#6B7280"
-                    fontSize={12}
-                  />
-                  <YAxis 
-                    stroke="#6B7280"
-                    fontSize={12}
-                    tickFormatter={(value) => `$${value}`}
-                  />
-                  <Tooltip content={<DailyTrendsTooltip />} />
-                  <Legend />
-                  <Bar 
-                    dataKey="income" 
-                    fill="#10B981" 
-                    name="Income"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar 
-                    dataKey="expenses" 
-                    fill="#EF4444" 
-                    name="Expenses"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
             </Card.Body>
           </Card>
         </Col>
@@ -783,118 +984,44 @@ const Reports = () => {
         <Modal.Body>
           {selectedDate && (
             <>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Card className="bg-success bg-opacity-10 border-success">
-                    <Card.Body className="text-center">
-                      <h6 className="text-success">Total Income</h6>
-                      <h4 className="text-success mb-0">
-                        +${getDateTransactions(selectedDate)
-                          .filter(t => t.type === 'income')
-                          .reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0)
-                          .toFixed(2)}
-                      </h4>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Card className="bg-danger bg-opacity-10 border-danger">
-                    <Card.Body className="text-center">
-                      <h6 className="text-danger">Total Expenses</h6>
-                      <h4 className="text-danger mb-0">
-                        -${getDateTransactions(selectedDate)
-                          .filter(t => t.type === 'expense')
-                          .reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0)
-                          .toFixed(2)}
-                      </h4>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-              
-              <div className="transactions-list">
-                <h6>Transaction Details</h6>
-                {getDateTransactions(selectedDate).length === 0 ? (
-                  <p className="text-muted text-center py-3">No transactions on this date</p>
-                ) : (
-                  getDateTransactions(selectedDate).map(transaction => (
-                    <Card key={transaction._id} className="mb-2">
-                      <Card.Body className="py-2">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div>
-                            <h6 className="mb-1">{transaction.description || transaction.category}</h6>
-                            <small className="text-muted">{transaction.category}</small>
-                          </div>
-                          <Badge bg={transaction.type === 'income' ? 'success' : 'danger'}>
-                            {transaction.type === 'income' ? '+' : '-'}${parseFloat(transaction.amount?.$numberInt || transaction.amount).toFixed(2)}
-                          </Badge>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  ))
-                )}
+              <div className="d-flex gap-3 mb-3">
+                <Badge bg="success" className="fs-6">
+                  Income: ${getDateTransactions(selectedDate).filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0).toFixed(2)}
+                </Badge>
+                <Badge bg="danger" className="fs-6">
+                  Expenses: ${getDateTransactions(selectedDate).filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0).toFixed(2)}
+                </Badge>
+                <Badge bg="primary" className="fs-6">
+                  Net: ${(getDateTransactions(selectedDate).filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0) - getDateTransactions(selectedDate).filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount?.$numberInt || t.amount), 0)).toFixed(2)}
+                </Badge>
               </div>
+              <ListGroup variant="flush">
+                {getDateTransactions(selectedDate).map(transaction => (
+                  <ListGroup.Item key={transaction._id} className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="mb-1">{transaction.description}</h6>
+                      <small className="text-muted">{transaction.category}</small>
+                    </div>
+                    <Badge bg={transaction.type === 'income' ? 'success' : 'danger'}>
+                      {transaction.type === 'income' ? '+' : '-'}${parseFloat(transaction.amount?.$numberInt || transaction.amount).toFixed(2)}
+                    </Badge>
+                  </ListGroup.Item>
+                ))}
+                {getDateTransactions(selectedDate).length === 0 && (
+                  <ListGroup.Item className="text-center text-muted">
+                    No transactions for this date
+                  </ListGroup.Item>
+                )}
+              </ListGroup>
             </>
           )}
         </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDateDetails(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
       </Modal>
-
-      <style>{`
-        .calendar-grid {
-          display: flex;
-          flex-direction: column;
-          height: 400px;
-        }
-        .calendar-header {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          border-bottom: 1px solid #dee2e6;
-          padding-bottom: 10px;
-          margin-bottom: 10px;
-        }
-        .calendar-body {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          grid-template-rows: repeat(6, 1fr);
-          flex: 1;
-          gap: 2px;
-        }
-        .calendar-day {
-          border: 1px solid #e9ecef;
-          padding: 5px;
-          min-height: 80px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .calendar-day.other-month {
-          background-color: #f8f9fa;
-          color: #6c757d;
-        }
-        .calendar-day.current-month:hover {
-          background-color: #e3f2fd;
-          border-color: #2196f3;
-        }
-        .calendar-day.has-transactions {
-          background-color: #fff3cd;
-        }
-        .day-number {
-          font-weight: bold;
-          margin-bottom: 5px;
-        }
-        .day-financials {
-          font-size: 0.75rem;
-        }
-        .income-indicator, .expense-indicator {
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          margin-bottom: 2px;
-        }
-        .calendar-day-header {
-          text-align: center;
-          padding: 5px;
-        }
-      `}</style>
     </Container>
   );
 };

@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   // Configure axios base URL - point to your backend
-  axios.defaults.baseURL = 'http://localhost:5000';
+  axios.defaults.baseURL = 'https://finance-tracker-apsf.onrender.com/';
 
   // Wrap getUser in useCallback to prevent infinite re-renders
   const getUser = useCallback(async () => {

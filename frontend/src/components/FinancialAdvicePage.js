@@ -83,7 +83,7 @@ const FinancialAdvicePage = () => {
           fluid 
           className="px-4" 
           style={{
-            background: 'linear-gradient(135deg, #b5d3f058 0%, #7da9e05a 50%, #4362ee4d 100%)',
+            background: 'linear-gradient(135deg, #0099ff0c 0%, #0099ff1c 25%, #0099ff1c 50%, #0099ff2c 75%, #0099ff2c 100%)',
             minHeight: '100vh',
             paddingTop: '20px',
             paddingBottom: '20px'
